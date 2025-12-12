@@ -41,19 +41,22 @@ def parse_track(track, ticks_per_beat, tempo):
         # Update current time in ticks
         current_time += msg.time
         if msg.type == 'note_on' and msg.velocity > 0:
+            # track note on event with its start time and velocity
             note_on_events[msg.note] = (current_time, msg.velocity)
+        # Handle note off events
         elif (msg.type == 'note_off') or (msg.type == 'note_on' and msg.velocity == 0):
             if msg.note in note_on_events:
                 start_time, velocity = note_on_events[msg.note]
                 end_time = current_time
+                # create Note object
                 note_obj = Note(
                     start_tick=start_time,
                     end_tick=end_time,
                     pitch=msg.note,
                     velocity=velocity,
-                    start_sec=mido.tick2second(start_time, ticks_per_beat, tempo),
+                    start_sec=mido.tick2second(start_time, ticks_per_beat, tempo), # convert ticks to seconds
                     end_sec=mido.tick2second(end_time, ticks_per_beat, tempo),
-                    start_frame=ticks_to_frames(start_time, ticks_per_beat, tempo),
+                    start_frame=ticks_to_frames(start_time, ticks_per_beat, tempo), # convert ticks to frames
                     end_frame=ticks_to_frames(end_time, ticks_per_beat, tempo)
                 )
                 notes.append(note_obj)
@@ -75,18 +78,19 @@ def parse_midi_file(mid):
     return track_list
 
 # parse midi file and print notes
-def main():
-    mid = mido.MidiFile("test.mid")
-    tracks_notes = parse_midi_file(mid)
-    print(f"Parsed {len(tracks_notes)} tracks")
-    for i, track_notes in enumerate(tracks_notes):
-        print(f"Track {i}: {len(track_notes)} notes")
-        for note in track_notes[:3]:
-            print(f"  Note: pitch={note.pitch}, start_tick={note.start_tick}, end_tick={note.end_tick}, "
-                  f"start_sec={note.start_sec:.2f}, end_sec={note.end_sec:.2f}, "
-                  f"start_frame={note.start_frame}, end_frame={note.end_frame}")
+# def main():
+#     mid = mido.MidiFile("test.mid")
+#     tracks_notes = parse_midi_file(mid)
+#     print(f"Parsed {len(tracks_notes)} tracks")
+#     for i, track_notes in enumerate(tracks_notes):
+#         print(f"Track {i}: {len(track_notes)} notes")
+#         # Print first 3 notes as a sample; track 0 is meta track
+#         for note in track_notes[:3]:
+#             print(f"  Note: pitch={note.pitch}, start_tick={note.start_tick}, end_tick={note.end_tick}, "
+#                   f"start_sec={note.start_sec:.2f}, end_sec={note.end_sec:.2f}, "
+#                   f"start_frame={note.start_frame}, end_frame={note.end_frame}")
         
-    return tracks_notes
+#     return tracks_notes
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
