@@ -63,15 +63,16 @@ def parse_track(track, ticks_per_beat, tempo):
 
 def parse_midi_file(mid):
     """Parse the entire MIDI file and extract notes from all tracks"""
-    all_notes = []
     ticks_per_beat = mid.ticks_per_beat 
     tempo = get_tempo(mid) # get tempo from the MIDI file
 
+    track_notes = [] # List[List[Note]]
+
     for track in mid.tracks:
         track_notes = parse_track(track, ticks_per_beat, tempo)
-        all_notes.extend(track_notes)
+        track_notes.append(track_notes)
 
-    return all_notes
+    return track_notes
 
 # parse midi file and print notes
 def main():
@@ -83,6 +84,8 @@ def main():
         print(f"Pitch: {note.pitch}, Start Tick: {note.start_tick}, End Tick: {note.end_tick}, "
               f"Velocity: {note.velocity}, Start Sec: {note.start_sec:.2f}, End Sec: {note.end_sec:.2f}, "
               f"Start Frame: {note.start_frame}, End Frame: {note.end_frame}")
+        
+    return notes
 
 
 if __name__ == "__main__":
