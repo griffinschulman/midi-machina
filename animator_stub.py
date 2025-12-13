@@ -10,11 +10,11 @@ def animate_stub(midi_path):
     # Skip track 0 (meta) and just inspect the musical tracks
     for i, track_notes in enumerate(track_list[1:], start=1):
         print(f"\nTrack {i}: {len(track_notes)} notes")
-        for note in track_notes[:5]:
+        for note in track_notes[:60]:
             print(
                 f"  Pitch={note.pitch}, "
                 f"start_frame={note.start_frame}, end_frame={note.end_frame}"
             )
 
 if __name__ == "__main__":
-    animate_stub("test.mid")
+    animate_stub("solarpunkex.mid")
