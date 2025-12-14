@@ -62,3 +62,8 @@ This will:
 - parse the MIDI into track note-lists
 - call animation functions in `blender_anim.py` for drums/harp/organ/bass/trumpet lasers
 
+## Blender Scene (.blend)
+
+The Solarpunk Blender scene is hosted on Google Drive (too large for GitHub):
+
+[Download MMscene.blend (Google Drive)](https://drive.google.com/file/d/1DJscowy0yCSSnnoUrkMaS_OEhJakyYh1/view?usp=sharing)
