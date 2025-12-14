@@ -15,7 +15,6 @@ def animate_hammer_harp(obj, notes, swing_deg, rebound_deg, axis, pre_frames=4):
     """
     # assume obj is at rest position, rotate around Y axis
     rest_rot = obj.rotation_euler.copy()
-
     notes = sorted(notes, key=lambda n: n.start_frame)
 
     # iterate over notes to create keyframes
@@ -59,6 +58,57 @@ def animate_hammer_harp(obj, notes, swing_deg, rebound_deg, axis, pre_frames=4):
         obj.rotation_euler = rest_rot
         obj.keyframe_insert("rotation_euler", frame=settle_frame)
 
+### STRING VIBRATION ###
+def animate_string_vibrate_2keys(string_obj, notes, key_up=1, key_down=2,
+                                 amp=0.8, cycles=4, step=2):
+    """
+    Alternates two shape keys (one bends up, one bends down) with decay.
+    - key_up driven on even ticks
+    - key_down driven on odd ticks
+    """
+    mesh = string_obj.data
+    sk = mesh.shape_keys
+    kb = sk.key_blocks
+
+    up = kb[key_up]
+    down = kb[key_down]
+
+    notes = sorted(notes, key=lambda n: n.start_frame)
+
+    for note in notes:
+        hit_frame = int(note.start_frame)
+
+        # ensure both start at rest right before hit
+        up.value = 0.0
+        down.value = 0.0
+        up.keyframe_insert("value", frame=max(hit_frame - 1, 1))
+        down.keyframe_insert("value", frame=max(hit_frame - 1, 1))
+
+        # alternating pulses: up, down, up, down...
+        total_ticks = cycles * 2
+        for i in range(total_ticks):
+            f = hit_frame + i * step
+            # decay from 1.0 to 0.0 over total_ticks
+            decay = 1.0 - (i / max(1, total_ticks)) # avoid div by zero
+            a = amp * decay
+
+            if i % 2 == 0:
+                up.value = a
+                down.value = 0.0
+            else:
+                up.value = 0.0
+                down.value = a
+
+            up.keyframe_insert("value", frame=f)
+            down.keyframe_insert("value", frame=f)
+
+        # settle back to rest
+        end_f = hit_frame + total_ticks * step + step
+        up.value = 0.0
+        down.value = 0.0
+        up.keyframe_insert("value", frame=end_f)
+        down.keyframe_insert("value", frame=end_f)
+
 ### HARP ###
 def animate_harp(track_list, harp_track_idx):
     """
@@ -68,42 +118,42 @@ def animate_harp(track_list, harp_track_idx):
 
     # map harp pitches to harp string objects in Blender (3 octaves from C3 to B5)
     harp_mapping = {
-        60: "HarpHammer_C3",
-        61: "HarpHammer_C#3",
-        62: "HarpHammer_D3",
-        63: "HarpHammer_D#3",
-        64: "HarpHammer_E3",
-        65: "HarpHammer_F3",
-        66: "HarpHammer_F#3",
-        67: "HarpHammer_G3",
-        68: "HarpHammer_G#3",
-        69: "HarpHammer_A3",
-        70: "HarpHammer_A#3",
-        71: "HarpHammer_B3",
-        72: "HarpHammer_C4",
-        73: "HarpHammer_C#4",
-        74: "HarpHammer_D4",
-        75: "HarpHammer_D#4",
-        76: "HarpHammer_E4",
-        77: "HarpHammer_F4",
-        78: "HarpHammer_F#4",
-        79: "HarpHammer_G4",
-        80: "HarpHammer_G#4",
-        81: "HarpHammer_A4",
-        82: "HarpHammer_A#4",
-        83: "HarpHammer_B4",
-        84: "HarpHammer_C5",
-        85: "HarpHammer_C#5",
-        86: "HarpHammer_D5",
-        87: "HarpHammer_D#5",
-        88: "HarpHammer_E5",
-        89: "HarpHammer_F5",
-        90: "HarpHammer_F#5",
-        91: "HarpHammer_G5",
-        92: "HarpHammer_G#5",
-        93: "HarpHammer_A5",
-        94: "HarpHammer_A#5",
-        95: "HarpHammer_B5"
+        60: {"hammer": "HarpHammer_C3", "string": "String.001"}, # C3
+        61: {"hammer": "HarpHammer_C#3", "string": "String.002"}, # C#3
+        62: {"hammer": "HarpHammer_D3", "string": "String.003"}, # D3
+        63: {"hammer": "HarpHammer_D#3", "string": "String.004"}, # D#3
+        64: {"hammer": "HarpHammer_E3", "string": "String.005"}, # E3
+        65: {"hammer": "HarpHammer_F3", "string": "String.006"}, # F3
+        66: {"hammer": "HarpHammer_F#3", "string": "String.007"}, # F#3
+        67: {"hammer": "HarpHammer_G3", "string": "String.008"}, # G3
+        68: {"hammer": "HarpHammer_G#3", "string": "String.009"}, # G#3
+        69: {"hammer": "HarpHammer_A3", "string": "String.010"}, # A3
+        70: {"hammer": "HarpHammer_A#3", "string": "String.011"}, # A#3
+        71: {"hammer": "HarpHammer_B3", "string": "String.012"}, # B3
+        72: {"hammer": "HarpHammer_C4", "string": "String.013"}, # C4
+        73: {"hammer": "HarpHammer_C#4", "string": "String.014"}, # C#4
+        74: {"hammer": "HarpHammer_D4", "string": "String.015"}, # D4
+        75: {"hammer": "HarpHammer_D#4", "string": "String.016"}, # D#4
+        76: {"hammer": "HarpHammer_E4", "string": "String.017"}, # E4
+        77: {"hammer": "HarpHammer_F4", "string": "String.018"}, # F4
+        78: {"hammer": "HarpHammer_F#4", "string": "String.019"}, # F#4
+        79: {"hammer": "HarpHammer_G4", "string": "String.020"}, # G4
+        80: {"hammer": "HarpHammer_G#4", "string": "String.021"}, # G#4
+        81: {"hammer": "HarpHammer_A4", "string": "String.022"}, # A4
+        82: {"hammer": "HarpHammer_A#4", "string": "String.023"}, # A#4
+        83: {"hammer": "HarpHammer_B4", "string": "String.024"}, # B4
+        84: {"hammer": "HarpHammer_C5", "string": "String.025"}, # C5
+        85: {"hammer": "HarpHammer_C#5", "string": "String.026"}, # C#5
+        86: {"hammer": "HarpHammer_D5", "string": "String.027"}, # D5
+        87: {"hammer": "HarpHammer_D#5", "string": "String.028"}, # D#5
+        88: {"hammer": "HarpHammer_E5", "string": "String.029"}, # E5
+        89: {"hammer": "HarpHammer_F5", "string": "String.030"}, # F5
+        90: {"hammer": "HarpHammer_F#5", "string": "String.031"}, # F#5
+        91: {"hammer": "HarpHammer_G5", "string": "String.032"}, # G5
+        92: {"hammer": "HarpHammer_G#5", "string": "String.033"}, # G#5
+        93: {"hammer": "HarpHammer_A5", "string": "String.034"}, # A5
+        94: {"hammer": "HarpHammer_A#5", "string": "String.035"}, # A#5
+        95: {"hammer": "HarpHammer_B5", "string": "String.036"} # B5
     }
 
     # parameters for harp hammer animation
@@ -119,11 +169,12 @@ def animate_harp(track_list, harp_track_idx):
         notes_by_pitch.setdefault(note.pitch, []).append(note)
 
     # For each pitch that we know how to animate, apply hammer animation
-    for pitch, obj_name in harp_mapping.items():
+    for pitch, cfg in harp_mapping.items():
         if pitch not in notes_by_pitch:
             continue # skip unmapped pitches
 
         # skip if obj_name not found in blender scene
+        obj_name = cfg["hammer"]
         if obj_name not in bpy.data.objects:
             print(f"[WARN] Object {obj_name!r} not found in Blender scene, skipping.")
             continue
@@ -135,6 +186,16 @@ def animate_harp(track_list, harp_track_idx):
             obj=obj,
             notes=notes_by_pitch[pitch],
             **harp_params
+        )
+        string_obj = bpy.data.objects.get(cfg["string"])
+        animate_string_vibrate_2keys(
+            string_obj,
+            notes_by_pitch[pitch],
+            key_up="Key 1",
+            key_down="Key 2",
+            amp=0.7,
+            cycles=4,
+            step=2
         )
 
 ### DRUM HAMMERS ###
@@ -316,11 +377,11 @@ def animate_organ(track_list, organ_track_idx):
         if pitch not in notes_by_pitch:
             continue
 
-        piston_name = cfg.get("piston")
-        if piston_name and piston_name in bpy.data.objects:
-            animate_piston(bpy.data.objects[piston_name], notes_by_pitch[pitch])
-        elif piston_name:
-            print(f"[WARN] Piston object {piston_name!r} not found.")
+        obj_name = cfg.get("piston")
+        if obj_name and obj_name in bpy.data.objects:
+            animate_piston(bpy.data.objects[obj_name], notes_by_pitch[pitch])
+        elif obj_name:
+            print(f"[WARN] Piston object {obj_name!r} not found.")
 
     # glow pass (reuse your glow code!)
     animate_glow_group(

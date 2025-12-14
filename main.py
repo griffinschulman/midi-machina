@@ -1,3 +1,9 @@
+# main.py
+#
+# This script is intended to be run inside Blender's scripting environment.
+#
+# Setup sys.path for Blender to find project and vendor modules
+
 import sys
 from pathlib import Path
 
