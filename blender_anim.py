@@ -199,7 +199,7 @@ def animate_harp(track_list, harp_track_idx):
         )
 
 ### DRUM HAMMERS ###
-def animate_hammer(obj, notes, swing_deg, rebound_deg, axis, pre_frames=4):
+def animate_hammer(obj, notes, swing_deg, rebound_deg, axis='Y', pre_frames=4):
     """
     Animate a hammer object based on note events (FOR DRUMS ONLY NOW)
 
@@ -228,12 +228,18 @@ def animate_hammer(obj, notes, swing_deg, rebound_deg, axis, pre_frames=4):
         rebound_rot = rest_rot.copy()
 
         # Apply swing angles (not sure which axis yet or multiple?, so I added all three)
-        if axis == 'Y':
+        if axis == 'X':
             up_rot.x += radians(rebound_deg) # little pre-wind/rebound
             down_rot.x += radians(-swing_deg)      # swing down
-            rebound_rot.x += radians(rebound_deg+4)  # little rebound
+            rebound_rot.x += radians(rebound_deg)  # little rebound
+        elif axis == 'Y':
+            up_rot.y += radians(rebound_deg) # little pre-wind/rebound
+            down_rot.y += radians(-swing_deg)      # swing down
+            rebound_rot.y += radians(rebound_deg+4)  # little rebound
         else:
-            return
+            up_rot.z += radians(rebound_deg) # little pre-wind/rebound
+            down_rot.z += radians(-swing_deg)      # swing down
+            rebound_rot.z += radians(rebound_deg)  # little rebound
   
         # Hold at rest until just before windup
         obj.rotation_euler = rest_rot
@@ -265,12 +271,12 @@ def animate_drums(track_list, drum_track_idx):
     # separate pitches for different drums, loop over, call animate_hammer
     # save rotation axis to object or have a mapping here
     drum_mapping = {
-        36: {"obj": "Kick_Stick", "swing_deg": 14.0, "rebound_deg": 10.0, "pre_frames": 24},
-        40: {"obj": "Snare_Stick", "swing_deg": -13.0, "rebound_deg": -11.0, "pre_frames": 24},
-        42: {"obj": "HiHat_Stick", "swing_deg": -27.0, "rebound_deg": -12.0, "pre_frames": 24},
-        43: {"obj": "TomLo_Stick", "swing_deg": 35.0, "rebound_deg": 14.0, "pre_frames": 24},
-        45: {"obj": "TomHi_Stick", "swing_deg": -35.0, "rebound_deg": -14.0, "pre_frames": 24},
-        49: {"obj": "Crash_Stick", "swing_deg": 30.0, "rebound_deg": 14.0, "pre_frames": 24},
+        36: {"obj": "Kick_Stick", "swing_deg": 14.0, "rebound_deg": 10.0, "pre_frames": 24, "axis": "Y"},
+        40: {"obj": "Snare_Stick", "swing_deg": -12.0, "rebound_deg": -10.0, "pre_frames": 24, "axis": "Y"},
+        42: {"obj": "HiHat_Stick", "swing_deg": -15.0, "rebound_deg": -11.0, "pre_frames": 24, "axis": "X"},
+        43: {"obj": "TomLo_Stick", "swing_deg": 18.0, "rebound_deg": 14.0, "pre_frames": 24, "axis": "X"},
+        45: {"obj": "TomHi_Stick", "swing_deg": 18.0, "rebound_deg": 10.0, "pre_frames": 24, "axis": "X"},
+        49: {"obj": "Crash_Stick", "swing_deg": -17.0, "rebound_deg": -14.0, "pre_frames": 24, "axis": "X"},
     }
 
     notes_by_pitch = {}
@@ -295,7 +301,7 @@ def animate_drums(track_list, drum_track_idx):
                        notes=notes_by_pitch[pitch],
                        swing_deg=cfg["swing_deg"],
                        rebound_deg=cfg["rebound_deg"],
-                       axis='Y',
+                       axis=cfg['axis'],
                        pre_frames=4)
                        # pre_frames=cfg["pre_frames"])
 
