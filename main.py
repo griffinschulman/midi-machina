@@ -10,17 +10,7 @@ for p in (PROJECT_ROOT, VENDOR_DIR):
     if sp not in sys.path:
         sys.path.insert(0, sp)
 
-# Sanity check: fail fast with useful info
-try:
-    import mido
-except ModuleNotFoundError as e:
-    import site
-    print("[ERROR] Blender Python cannot import mido.")
-    print("sys.executable:", sys.executable)
-    print("site.getusersitepackages():", site.getusersitepackages())
-    print("First sys.path entries:", sys.path[:10])
-    raise
-
+import mido
 import bpy
 
 def clear_animation_for_objects(names):
@@ -47,8 +37,31 @@ HARP_OBJECTS = [
     "HarpHammer_F#5","HarpHammer_G5","HarpHammer_G#5","HarpHammer_A5","HarpHammer_A#5",
     "HarpHammer_B5"
 ]
+ORGAN_OBJECTS = [
+    "Tube.014", "Tube.010", "Tube.008", "Tube.012", "Tube.016",
+    "Tube.028", "Tube.026", "Tube.024", "Tube.022", "Tube.020",
+    "Tube.018", "Tube.006", "Tube.004", "Tube.002", "Tube.001",
+    "Tube.003", "Tube.005", "Tube.007", "Tube.019", "Tube.021",
+    "Tube.023", "Tube.025", "Tube.027", "Tube.029", "Tube.015",
+    "Tube.011", "Tube.009", "Tube.013", "Tube.017"
+]
+BASS_OBJECTS = [
+    "Core.001", "Core.002", "Core.003", "Core.004", "Core.005",
+    "Core.006", "Core.007", "Core.008", "Core.009", "Core.010",
+    "Core.011", "Core.012", "Core.013", "Core.014", "Core.015",
+    "Core.016", "Core.017", "Core.018", "Core.019", "Core.020",
+    "Core.021", "Core.022", "Core.023", "Core.024"
+]
+TRUMPET_OBJECTS = [
+    "Laser.001", "Beam.001",
+    "Laser.002", "Beam.002"
+]
+
 clear_animation_for_objects(DRUM_OBJECTS)
 clear_animation_for_objects(HARP_OBJECTS)
+clear_animation_for_objects(ORGAN_OBJECTS)
+clear_animation_for_objects(BASS_OBJECTS)
+clear_animation_for_objects(TRUMPET_OBJECTS)
 
 import importlib
 
@@ -59,13 +72,13 @@ import blender_anim
 importlib.reload(parser)
 importlib.reload(blender_anim)
 
-MIDI_PATH = str(PROJECT_ROOT / "solarpunkex2.mid")
+MIDI_PATH = str(PROJECT_ROOT / "solarpunkFIN.mid")
 mid = mido.MidiFile(MIDI_PATH)
 track_list = parser.parse_midi_file(mid)
-
-import blender_anim
 
 blender_anim.animate_drums(track_list=track_list, drum_track_idx=1)
 blender_anim.animate_harp(track_list=track_list, harp_track_idx=2)
 blender_anim.animate_organ(track_list=track_list, organ_track_idx=3)
-print("Animation complete.")
+blender_anim.animate_bass(track_list=track_list, bass_track_idx=4)
+blender_anim.animate_trumpet_laser(track_list=track_list, trumpet_track_idx=5, trumpet_name="Laser.001", laser_name="Beam.001")
+blender_anim.animate_trumpet_laser(track_list=track_list, trumpet_track_idx=6, trumpet_name="Laser.002", laser_name="Beam.002")

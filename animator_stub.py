@@ -17,4 +17,4 @@ def animate_stub(midi_path):
             )
 
 if __name__ == "__main__":
-    animate_stub("solarpunkex2.mid")
+    animate_stub("solarpunkFIN.mid")
