@@ -28,6 +28,13 @@ def clear_animation_for_objects(names):
         obj = bpy.data.objects.get(name)
         if obj:
             obj.animation_data_clear()
+            scn = bpy.context.scene
+            scn.frame_set(1)
+
+            obj.rotation_mode = 'XYZ'
+            obj.rotation_euler = (0.0, 0.0, 0.0)
+
+    bpy.context.view_layer.update()
 
 DRUM_OBJECTS = ["Kick_Stick","Snare_Stick","HiHat_Stick","TomLo_Stick","TomHi_Stick","Crash_Stick"]
 HARP_OBJECTS = [
@@ -43,14 +50,22 @@ HARP_OBJECTS = [
 clear_animation_for_objects(DRUM_OBJECTS)
 clear_animation_for_objects(HARP_OBJECTS)
 
-from parser import parse_midi_file
+import importlib
+
+import parser
+import blender_anim
+
+# Reload modules to pick up recent edits in Blender without restarting
+importlib.reload(parser)
+importlib.reload(blender_anim)
 
 MIDI_PATH = str(PROJECT_ROOT / "solarpunkex2.mid")
 mid = mido.MidiFile(MIDI_PATH)
-track_list = parse_midi_file(mid)
+track_list = parser.parse_midi_file(mid)
 
 import blender_anim
 
 blender_anim.animate_drums(track_list=track_list, drum_track_idx=1)
 blender_anim.animate_harp(track_list=track_list, harp_track_idx=2)
+blender_anim.animate_organ(track_list=track_list, organ_track_idx=3)
 print("Animation complete.")

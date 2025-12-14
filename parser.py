@@ -4,15 +4,6 @@ from notes import Note
 
 # reference: https://youtu.be/MUFNS5sNICI?si=CoaxxkgSqs1W5Z5j
 # load a MIDI file
-# mid = mido.MidiFile('test.mid')
-# print("Loaded MIDI file:", mid)
-
-# print the tracks in the MIDI file
-# print("Tracks in the MIDI file:")
-# for i, track in enumerate(mid.tracks):
-#     print(f"Track {i}: {track.name}")
-#     for message in track:
-#         print(message)
 
 def get_tempo(mid):
     """Extract tempo from the MIDI file. Defaults to 500000 μs/beat if not found"""
@@ -29,7 +20,7 @@ def ticks_to_frames(ticks, ticks_per_beat, tempo, fps=24):
     frames = int(round(seconds * fps))
     return frames
 
-# found reference on Carnegie Mellon ? (http://course.ece.cmu.edu/~ece500/projects/f24-teamc5/wp-content/uploads/sites/332/2024/11/current-python-midi-parsing-code.pdf)
+# found reference on Carnegie Mellon (http://course.ece.cmu.edu/~ece500/projects/f24-teamc5/wp-content/uploads/sites/332/2024/11/current-python-midi-parsing-code.pdf)
 def parse_track(track, ticks_per_beat, tempo):
     """Parse a MIDI track and extract note events"""
     notes = []
@@ -76,21 +67,3 @@ def parse_midi_file(mid):
         track_list.append(track_notes)
 
     return track_list
-
-# parse midi file and print notes
-# def main():
-#     mid = mido.MidiFile("test.mid")
-#     tracks_notes = parse_midi_file(mid)
-#     print(f"Parsed {len(tracks_notes)} tracks")
-#     for i, track_notes in enumerate(tracks_notes):
-#         print(f"Track {i}: {len(track_notes)} notes")
-#         # Print first 3 notes as a sample; track 0 is meta track
-#         for note in track_notes[:3]:
-#             print(f"  Note: pitch={note.pitch}, start_tick={note.start_tick}, end_tick={note.end_tick}, "
-#                   f"start_sec={note.start_sec:.2f}, end_sec={note.end_sec:.2f}, "
-#                   f"start_frame={note.start_frame}, end_frame={note.end_frame}")
-        
-#     return tracks_notes
-
-# if __name__ == "__main__":
-#     main()
