@@ -2,13 +2,12 @@ import bpy
 from math import radians
 
 ### HARP HAMMERS ###
-def animate_hammer_harp(obj, notes, swing_deg, rebound_deg, axis, pre_frames=4):
+def animate_hammer_harp(obj, notes, swing_deg, rebound_deg, axis):
     """
     Animate a hammer object based on note events
 
     - obj: Blender object representing the specific hammer
     - notes: List of Note objects to animate
-    - pre_frames: hammer winds up before the note start
     - swing_deg: degrees the hammer swings down on hit
     - rebound_deg: degrees the hammer rebounds after hit
     - axis: rotation axis ('X', 'Y', or 'Z')
@@ -20,53 +19,61 @@ def animate_hammer_harp(obj, notes, swing_deg, rebound_deg, axis, pre_frames=4):
     # iterate over notes to create keyframes
     for note in notes:
         hit_frame = note.start_frame
-        pre_frame = max(hit_frame - pre_frames, 1) # ensure frame is at least 1 (first hit)
+        hold_frame = hit_frame - 24 #  
+        pre_frame = hit_frame - 4 # 
         rebound_frame = hit_frame + 8 # 
-        settle_frame = hit_frame + 20 # 
-        hold_frame = max(pre_frame - 24, 1)
+        settle_frame = hit_frame + 16 # 
 
-        # Copies of the rest rotation for each phase
+        # copies of the rest rotation for each phase
         up_rot = rest_rot.copy()
         down_rot = rest_rot.copy()
         rebound_rot = rest_rot.copy()
 
-        # Apply swing angles (not sure which axis yet or multiple?, so I added all three)
+        # apply swing angles by axis
         if axis == 'X':
-            up_rot.x += radians(rebound_deg) # little pre-wind/rebound
-            down_rot.x += radians(-swing_deg)      # swing down
-            rebound_rot.x += radians(rebound_deg+4)  # little rebound
+            up_rot.x += radians(rebound_deg)
+            down_rot.x += radians(-swing_deg)
+            rebound_rot.x += radians(rebound_deg+5)
+        elif axis == 'Y' :
+            up_rot.y += radians(rebound_deg)
+            down_rot.y += radians(-swing_deg)
+            rebound_rot.y += radians(rebound_deg+5)
+        elif axis == 'Z' :
+            up_rot.z += radians(rebound_deg)
+            down_rot.z += radians(-swing_deg)
+            rebound_rot.z = radians(rebound_deg+5)
         else:
             return
 
-        # Hold at rest until just before windup
+        # gold at rest until just before windup
         obj.rotation_euler = rest_rot
         obj.keyframe_insert("rotation_euler", frame=hold_frame)
 
-        # Pre-wind
+        # pre-wind
         obj.rotation_euler = up_rot
         obj.keyframe_insert("rotation_euler", frame=pre_frame)
 
-        # Hit
+        # hit
         obj.rotation_euler = down_rot
         obj.keyframe_insert("rotation_euler", frame=hit_frame)
 
-        # Rebound
+        # rebound
         obj.rotation_euler = rebound_rot
         obj.keyframe_insert("rotation_euler", frame=rebound_frame)
 
-        # Settle
+        # settle
         obj.rotation_euler = rest_rot
         obj.keyframe_insert("rotation_euler", frame=settle_frame)
 
 ### STRING VIBRATION ###
-def animate_string_vibrate_2keys(string_obj, notes, key_up=1, key_down=2,
+def animate_string_vibrate_2keys(obj, notes, key_up=1, key_down=2,
                                  amp=0.8, cycles=4, step=2):
     """
     Alternates two shape keys (one bends up, one bends down) with decay.
     - key_up driven on even ticks
     - key_down driven on odd ticks
     """
-    mesh = string_obj.data
+    mesh = obj.data
     sk = mesh.shape_keys
     kb = sk.key_blocks
 
@@ -81,8 +88,8 @@ def animate_string_vibrate_2keys(string_obj, notes, key_up=1, key_down=2,
         # ensure both start at rest right before hit
         up.value = 0.0
         down.value = 0.0
-        up.keyframe_insert("value", frame=max(hit_frame - 1, 1))
-        down.keyframe_insert("value", frame=max(hit_frame - 1, 1))
+        up.keyframe_insert("value", frame=hit_frame - 1)
+        down.keyframe_insert("value", frame=hit_frame - 1)
 
         # alternating pulses: up, down, up, down...
         total_ticks = cycles * 2
@@ -110,50 +117,50 @@ def animate_string_vibrate_2keys(string_obj, notes, key_up=1, key_down=2,
         down.keyframe_insert("value", frame=end_f)
 
 ### HARP ###
-def animate_harp(track_list, harp_track_idx):
+def animate_harp(track_list, track_id):
     """
     Animate harp hammers based on note events
     """
-    harp_notes = track_list[harp_track_idx]
+    harp_notes = track_list[track_id]
 
     # map harp pitches to harp string objects in Blender (3 octaves from C3 to B5)
     harp_mapping = {
-        60: {"hammer": "HarpHammer_C3", "string": "String.001"}, # C3
-        61: {"hammer": "HarpHammer_C#3", "string": "String.002"}, # C#3
-        62: {"hammer": "HarpHammer_D3", "string": "String.003"}, # D3
-        63: {"hammer": "HarpHammer_D#3", "string": "String.004"}, # D#3
-        64: {"hammer": "HarpHammer_E3", "string": "String.005"}, # E3
-        65: {"hammer": "HarpHammer_F3", "string": "String.006"}, # F3
-        66: {"hammer": "HarpHammer_F#3", "string": "String.007"}, # F#3
-        67: {"hammer": "HarpHammer_G3", "string": "String.008"}, # G3
-        68: {"hammer": "HarpHammer_G#3", "string": "String.009"}, # G#3
-        69: {"hammer": "HarpHammer_A3", "string": "String.010"}, # A3
-        70: {"hammer": "HarpHammer_A#3", "string": "String.011"}, # A#3
-        71: {"hammer": "HarpHammer_B3", "string": "String.012"}, # B3
-        72: {"hammer": "HarpHammer_C4", "string": "String.013"}, # C4
-        73: {"hammer": "HarpHammer_C#4", "string": "String.014"}, # C#4
-        74: {"hammer": "HarpHammer_D4", "string": "String.015"}, # D4
-        75: {"hammer": "HarpHammer_D#4", "string": "String.016"}, # D#4
-        76: {"hammer": "HarpHammer_E4", "string": "String.017"}, # E4
-        77: {"hammer": "HarpHammer_F4", "string": "String.018"}, # F4
-        78: {"hammer": "HarpHammer_F#4", "string": "String.019"}, # F#4
-        79: {"hammer": "HarpHammer_G4", "string": "String.020"}, # G4
-        80: {"hammer": "HarpHammer_G#4", "string": "String.021"}, # G#4
-        81: {"hammer": "HarpHammer_A4", "string": "String.022"}, # A4
-        82: {"hammer": "HarpHammer_A#4", "string": "String.023"}, # A#4
-        83: {"hammer": "HarpHammer_B4", "string": "String.024"}, # B4
-        84: {"hammer": "HarpHammer_C5", "string": "String.025"}, # C5
-        85: {"hammer": "HarpHammer_C#5", "string": "String.026"}, # C#5
-        86: {"hammer": "HarpHammer_D5", "string": "String.027"}, # D5
-        87: {"hammer": "HarpHammer_D#5", "string": "String.028"}, # D#5
-        88: {"hammer": "HarpHammer_E5", "string": "String.029"}, # E5
-        89: {"hammer": "HarpHammer_F5", "string": "String.030"}, # F5
-        90: {"hammer": "HarpHammer_F#5", "string": "String.031"}, # F#5
-        91: {"hammer": "HarpHammer_G5", "string": "String.032"}, # G5
-        92: {"hammer": "HarpHammer_G#5", "string": "String.033"}, # G#5
-        93: {"hammer": "HarpHammer_A5", "string": "String.034"}, # A5
-        94: {"hammer": "HarpHammer_A#5", "string": "String.035"}, # A#5
-        95: {"hammer": "HarpHammer_B5", "string": "String.036"} # B5
+        60: {"hammer": "Hammer.001", "string": "String.001"}, # C3
+        61: {"hammer": "Hammer.002", "string": "String.002"}, # C#3
+        62: {"hammer": "Hammer.003", "string": "String.003"}, # D3
+        63: {"hammer": "Hammer.004", "string": "String.004"}, # D#3
+        64: {"hammer": "Hammer.005", "string": "String.005"}, # E3
+        65: {"hammer": "Hammer.006", "string": "String.006"}, # F3
+        66: {"hammer": "Hammer.007", "string": "String.007"}, # F#3
+        67: {"hammer": "Hammer.008", "string": "String.008"}, # G3
+        68: {"hammer": "Hammer.009", "string": "String.009"}, # G#3
+        69: {"hammer": "Hammer.010", "string": "String.010"}, # A3
+        70: {"hammer": "Hammer.011", "string": "String.011"}, # A#3
+        71: {"hammer": "Hammer.012", "string": "String.012"}, # B3
+        72: {"hammer": "Hammer.013", "string": "String.013"}, # C4
+        73: {"hammer": "Hammer.014", "string": "String.014"}, # C#4
+        74: {"hammer": "Hammer.015", "string": "String.015"}, # D4
+        75: {"hammer": "Hammer.016", "string": "String.016"}, # D#4
+        76: {"hammer": "Hammer.017", "string": "String.017"}, # E4
+        77: {"hammer": "Hammer.018", "string": "String.018"}, # F4
+        78: {"hammer": "Hammer.019", "string": "String.019"}, # F#4
+        79: {"hammer": "Hammer.020", "string": "String.020"}, # G4
+        80: {"hammer": "Hammer.021", "string": "String.021"}, # G#4
+        81: {"hammer": "Hammer.022", "string": "String.022"}, # A4
+        82: {"hammer": "Hammer.023", "string": "String.023"}, # A#4
+        83: {"hammer": "Hammer.024", "string": "String.024"}, # B4
+        84: {"hammer": "Hammer.025", "string": "String.025"}, # C5
+        85: {"hammer": "Hammer.026", "string": "String.026"}, # C#5
+        86: {"hammer": "Hammer.027", "string": "String.027"}, # D5
+        87: {"hammer": "Hammer.028", "string": "String.028"}, # D#5
+        88: {"hammer": "Hammer.029", "string": "String.029"}, # E5
+        89: {"hammer": "Hammer.030", "string": "String.030"}, # F5
+        90: {"hammer": "Hammer.031", "string": "String.031"}, # F#5
+        91: {"hammer": "Hammer.032", "string": "String.032"}, # G5
+        92: {"hammer": "Hammer.033", "string": "String.033"}, # G#5
+        93: {"hammer": "Hammer.034", "string": "String.034"}, # A5
+        94: {"hammer": "Hammer.035", "string": "String.035"}, # A#5
+        95: {"hammer": "Hammer.036", "string": "String.036"}  # B5
     }
 
     # parameters for harp hammer animation
@@ -161,36 +168,40 @@ def animate_harp(track_list, harp_track_idx):
         "swing_deg": -7.0,    # degrees the hammer swings down on hit
         "rebound_deg": -15.0, # degrees the hammer rebounds after hit
         "axis": "X",          # rotation axis
-        "pre_frames": 4       # frames before hit to start windup
     }
 
     notes_by_pitch = {}
     for note in harp_notes:
         notes_by_pitch.setdefault(note.pitch, []).append(note)
 
-    # For each pitch that we know how to animate, apply hammer animation
+    # for each pitch that we know how to animate, apply animations
     for pitch, cfg in harp_mapping.items():
         if pitch not in notes_by_pitch:
             continue # skip unmapped pitches
 
-        # skip if obj_name not found in blender scene
-        obj_name = cfg["hammer"]
-        if obj_name not in bpy.data.objects:
-            print(f"[WARN] Object {obj_name!r} not found in Blender scene, skipping.")
+        # skip if obj not found in blender scene
+        hammer_name = cfg["hammer"]
+        if cfg["hammer"] not in bpy.data.objects:
+            print(f"[WARN] Object {hammer_name!r} not found in Blender scene, skipping.")
+            continue
+        string_name = cfg["string"]
+        if cfg["hammer"] not in bpy.data.objects:
+            print(f"[WARN] Object {string_name!r} not found in Blender scene, skipping.")
             continue
 
-        # get blender object
-        obj = bpy.data.objects[obj_name]
-        # print(f"Animating pitch {pitch} on object {obj_name} with {len(notes_by_pitch[pitch])} notes.")
+        # animate hammer
+        hammer_obj = bpy.data.objects[hammer_name]
         animate_hammer_harp(
-            obj=obj,
+            obj=hammer_obj,
             notes=notes_by_pitch[pitch],
             **harp_params
         )
-        string_obj = bpy.data.objects.get(cfg["string"])
+        
+        # animate string
+        string_obj = bpy.data.objects[string_name]
         animate_string_vibrate_2keys(
-            string_obj,
-            notes_by_pitch[pitch],
+            obj=string_obj,
+            notes=notes_by_pitch[pitch],
             key_up="Key 1",
             key_down="Key 2",
             amp=0.7,
@@ -199,13 +210,12 @@ def animate_harp(track_list, harp_track_idx):
         )
 
 ### DRUM HAMMERS ###
-def animate_hammer(obj, notes, swing_deg, rebound_deg, axis='Y', pre_frames=4):
+def animate_drum_hammer(obj, notes, swing_deg, rebound_deg, axis):
     """
     Animate a hammer object based on note events (FOR DRUMS ONLY NOW)
 
     - obj: Blender object representing the specific hammer
     - notes: List of Note objects to animate
-    - pre_frames: hammer winds up before the note start
     - swing_deg: degrees the hammer swings down on hit
     - rebound_deg: degrees the hammer rebounds after hit
     """
@@ -217,160 +227,243 @@ def animate_hammer(obj, notes, swing_deg, rebound_deg, axis='Y', pre_frames=4):
     # iterate over notes to create keyframes
     for note in notes:
         hit_frame = note.start_frame
-        pre_frame = max(hit_frame - pre_frames, 1) # ensure frame is at least 1 (first hit)
+        hold_frame = hit_frame - 16 #
+        pre_frame = hit_frame - 4 #
         rebound_frame = hit_frame + 6 # 
         settle_frame = hit_frame + 10 # 
-        hold_frame = max(pre_frame - 12, 1) # 
 
-        # Copies of the rest rotation for each phase
+        # copies of the rest rotation for each phase
         up_rot = rest_rot.copy()
         down_rot = rest_rot.copy()
         rebound_rot = rest_rot.copy()
 
-        # Apply swing angles (not sure which axis yet or multiple?, so I added all three)
+        # apply swing angles by axis
         if axis == 'X':
-            up_rot.x += radians(rebound_deg) # little pre-wind/rebound
-            down_rot.x += radians(-swing_deg)      # swing down
-            rebound_rot.x += radians(rebound_deg)  # little rebound
+            up_rot.x += radians(rebound_deg)
+            down_rot.x += radians(-swing_deg) 
+            rebound_rot.x += radians(rebound_deg) 
         elif axis == 'Y':
-            up_rot.y += radians(rebound_deg) # little pre-wind/rebound
-            down_rot.y += radians(-swing_deg)      # swing down
-            rebound_rot.y += radians(rebound_deg+4)  # little rebound
-        else:
-            up_rot.z += radians(rebound_deg) # little pre-wind/rebound
-            down_rot.z += radians(-swing_deg)      # swing down
-            rebound_rot.z += radians(rebound_deg)  # little rebound
+            up_rot.y += radians(rebound_deg)
+            down_rot.y += radians(-swing_deg)
+            rebound_rot.y += radians(rebound_deg)
+        elif axis == "Z" :
+            up_rot.z += radians(rebound_deg)
+            down_rot.z += radians(-swing_deg)
+            rebound_rot.z += radians(rebound_deg)
+        else: 
+            return
   
-        # Hold at rest until just before windup
+        # hold at rest until just before windup
         obj.rotation_euler = rest_rot
         obj.keyframe_insert("rotation_euler", frame=hold_frame)
-        # Pre-wind
+        
+        # pre-wind
         obj.rotation_euler = up_rot
         obj.keyframe_insert("rotation_euler", frame=pre_frame)
 
-        # Hit
+        # hit
         obj.rotation_euler = down_rot
         obj.keyframe_insert("rotation_euler", frame=hit_frame)
 
-        # Rebound
+        # rebound
         obj.rotation_euler = rebound_rot
         obj.keyframe_insert("rotation_euler", frame=rebound_frame)
 
-        # Settle
+        # settle
         obj.rotation_euler = rest_rot
         obj.keyframe_insert("rotation_euler", frame=settle_frame)
 
+### DRUM BODIES ###
+def animate_drum_body(obj, notes, hit_dist, rebound_dist, axis):
+    """
+    Animate a drum object based on note events
+
+    - obj: Blender object representing the specific drum
+    - notes: List of Note objects to animate
+    - hit_dist: distance to move on impact
+    - rebound_dist: distance to bounce back 
+    """
+    # assume obj is at rest position, rotate around Y axis
+    rest_loc = obj.location.copy()
+
+    notes = sorted(notes, key=lambda n: n.start_frame)
+
+    # iterate over notes to create keyframes
+    for note in notes:
+        hit_frame = note.start_frame
+        down_frame = hit_frame + 2 #
+        rebound_frame = hit_frame + 4 # 
+        settle_frame = hit_frame + 6 # 
+
+        # copies of the rest rotation for each phase
+        down_loc = rest_loc.copy()
+        rebound_loc = rest_loc.copy()
+
+        # apply swing angles by axis
+        if axis == 'X':
+            down_loc.x -= hit_dist
+            rebound_loc.x += rebound_dist
+        elif axis == 'Y':
+            down_loc.y -= hit_dist
+            rebound_loc.y += rebound_dist
+        elif axis == 'Z':
+            down_loc.z -= hit_dist
+            rebound_loc.z += rebound_dist
+        else: 
+            return
+  
+        # hold at rest until just before hit
+        obj.location = rest_loc
+        obj.keyframe_insert("location", frame=hit_frame)
+
+        # hit
+        obj.location = down_loc
+        obj.keyframe_insert("location", frame=down_frame)
+
+        # rebound
+        obj.location = rebound_loc
+        obj.keyframe_insert("location", frame=rebound_frame)
+
+        # settle
+        obj.location = rest_loc
+        obj.keyframe_insert("location", frame=settle_frame)
+
 ### DRUMS ###
-def animate_drums(track_list, drum_track_idx):
+def animate_drums(track_list, track_id):
     """
     Animate drum hammers based on note events
     """
-    drum_notes = track_list[drum_track_idx]
+    drum_notes = track_list[track_id]
 
-    # map drum pitches to hammer objects in Blender
-    # separate pitches for different drums, loop over, call animate_hammer
-    # save rotation axis to object or have a mapping here
+    # map drum pitches to drum objects in Blender
     drum_mapping = {
-        36: {"obj": "Kick_Stick", "swing_deg": 14.0, "rebound_deg": 10.0, "pre_frames": 24, "axis": "Y"},
-        40: {"obj": "Snare_Stick", "swing_deg": -12.0, "rebound_deg": -10.0, "pre_frames": 24, "axis": "Y"},
-        42: {"obj": "HiHat_Stick", "swing_deg": -15.0, "rebound_deg": -11.0, "pre_frames": 24, "axis": "X"},
-        43: {"obj": "TomLo_Stick", "swing_deg": 18.0, "rebound_deg": 14.0, "pre_frames": 24, "axis": "X"},
-        45: {"obj": "TomHi_Stick", "swing_deg": 18.0, "rebound_deg": 10.0, "pre_frames": 24, "axis": "X"},
-        49: {"obj": "Crash_Stick", "swing_deg": -17.0, "rebound_deg": -14.0, "pre_frames": 24, "axis": "X"},
+        36: {"hammer": "Kick_Stick", "swing_deg": 14.0, "rebound_deg": 10.0,
+                "drum": "Kick", "hit_dist": 0.01, "rebound_dist": 0.01},
+
+        40: {"hammer": "Snare_Stick", "swing_deg": -12.0, "rebound_deg": -10.0,
+                "drum": "Snare", "hit_dist": 0.01, "rebound_dist": 0.01},
+
+        42: {"hammer": "HiHat_Stick", "swing_deg": -15.0, "rebound_deg": -11.0,
+                "drum": "HiHat", "hit_dist": 0.01, "rebound_dist": 0.01},
+
+        43: {"hammer": "TomLo_Stick", "swing_deg": 18.0, "rebound_deg": 14.0,
+                "drum": "TomLo", "hit_dist": 0.01, "rebound_dist": 0.01},
+
+        45: {"hammer": "TomHi_Stick", "swing_deg": 18.0, "rebound_deg": 10.0,
+                "drum": "TomHi", "hit_dist": 0.01, "rebound_dist": 0.01},
+
+        49: {"hammer": "Crash_Stick", "swing_deg": -17.0, "rebound_deg": -14.0,
+                "drum": "Crash", "hit_dist": 0.01, "rebound_dist": 0.01}
     }
 
     notes_by_pitch = {}
     for note in drum_notes:
         notes_by_pitch.setdefault(note.pitch, []).append(note)
 
-    # For each pitch that we know how to animate, apply hammer animation
+    # for each pitch that we know how to animate, apply animations
     for pitch, cfg in drum_mapping.items():
         if pitch not in notes_by_pitch:
             continue # skip unmapped pitches
 
-        obj_name = cfg["obj"]
-        # skip if obj_name not found in blender scene
-        if obj_name not in bpy.data.objects:
-            print(f"[WARN] Object {obj_name!r} not found in Blender scene, skipping.")
+        # skip if obj not found in blender scene
+        hammer_name = cfg["hammer"]
+        if hammer_name not in bpy.data.objects:
+            print(f"[WARN] Object {hammer_name!r} not found in Blender scene, skipping.")
+            continue
+        drum_name = cfg["drum"]
+        if drum_name not in bpy.data.objects:
+            print(f"[WARN] Object {drum_name!r} not found in Blender scene, skipping.")
             continue
 
-        # get blender object
-        obj = bpy.data.objects[obj_name]
-        # animate drum hammers
-        animate_hammer(obj=obj,
-                       notes=notes_by_pitch[pitch],
-                       swing_deg=cfg["swing_deg"],
-                       rebound_deg=cfg["rebound_deg"],
-                       axis=cfg['axis'],
-                       pre_frames=4)
-                       # pre_frames=cfg["pre_frames"])
+        # animate hammer
+        hammer_obj = bpy.data.objects[hammer_name]
+        animate_drum_hammer(
+            obj=hammer_obj,
+            notes=notes_by_pitch[pitch],
+            swing_deg=cfg["swing_deg"],
+            rebound_deg=cfg["rebound_deg"],
+            axis="X"
+        )
+        
+        # animate drum
+        drum_obj = bpy.data.objects[drum_name]
+        animate_drum_body(
+            obj=drum_obj,
+            notes=notes_by_pitch[pitch],
+            hit_dist=cfg["hit_dist"],
+            rebound_dist=cfg["rebound_dist"],
+            axis="Z"
+        )
+
 
 ### ORGAN PISTONS ###
-def animate_piston(obj, notes, z_rest=1.1, z_up=1.33, pre_frames=6):
+def animate_piston(obj, notes, dist):
     notes = sorted(notes, key=lambda n: n.start_frame)
     for note in notes:
         on_frame = note.start_frame
-        hold_frame = note.end_frame
-        off_frame = hold_frame + 48
+        hold_frame = on_frame - 6
+        off_frame = note.end_frame
+        settle_frame = note.end_frame + 6
 
-        # Move to rest position
+        # reference z position
+        z_rest = obj.location.z
+        z_up = z_rest + dist
+
+        # move to rest position
         obj.location.z = z_rest
-        obj.keyframe_insert("location", frame=max(on_frame - pre_frames, 1))
-
-        # Move up on note on
-        obj.location.z = z_up
-        obj.keyframe_insert("location", frame=on_frame)
-
-        obj.location.z = z_up
         obj.keyframe_insert("location", frame=hold_frame)
 
-        # Move back to rest position
-        obj.location.z = z_rest
+        # move up and stay up on note
+        obj.location.z = z_up
+        obj.keyframe_insert("location", frame=on_frame)
         obj.keyframe_insert("location", frame=off_frame)
 
+        # move back to rest position
+        obj.location.z = z_rest
+        obj.keyframe_insert("location", frame=settle_frame)
+
 ### ORGAN ###
-def animate_organ(track_list, organ_track_idx):
+def animate_organ(track_list, track_id):
     """
     organ animation based on note events
     """
-    organ_notes = track_list[organ_track_idx]
-    # Implementation would go here
+    organ_notes = track_list[track_id]
     
     organ_mapping = {
-        # Map organ pitches to Blender objects
-        57: {"piston": "Piston.014", "glow": "Filament.014"}, # A3
-        58: {"piston": "Piston.010", "glow": "Filament.010"}, # A#3
-        59: {"piston": "Piston.008", "glow": "Filament.008"}, # B3
-        60: {"piston": "Piston.012", "glow": "Filament.012"}, # C4
-        61: {"piston": "Piston.016", "glow": "Filament.016"}, # C#4
+        # map organ pitches to Blender objects
+        57: {"piston": "Piston.001", "glow": "Filament.001"}, # A3
+        58: {"piston": "Piston.002", "glow": "Filament.002"}, # A#3
+        59: {"piston": "Piston.003", "glow": "Filament.003"}, # B3
+        60: {"piston": "Piston.004", "glow": "Filament.004"}, # C4
+        61: {"piston": "Piston.005", "glow": "Filament.005"}, # C#4
 
-        62: {"piston": "Piston.028", "glow": "Filament.028"}, # D4
-        63: {"piston": "Piston.026", "glow": "Filament.026"}, # D#4
-        64: {"piston": "Piston.024", "glow": "Filament.024"}, # E4
-        65: {"piston": "Piston.022", "glow": "Filament.022"}, # F4
-        66: {"piston": "Piston.020", "glow": "Filament.020"}, # F#4
-        67: {"piston": "Piston.018", "glow": "Filament.018"}, # G4
+        62: {"piston": "Piston.006", "glow": "Filament.006"}, # D4
+        63: {"piston": "Piston.007", "glow": "Filament.007"}, # D#4
+        64: {"piston": "Piston.008", "glow": "Filament.008"}, # E4
+        65: {"piston": "Piston.009", "glow": "Filament.009"}, # F4
+        66: {"piston": "Piston.010", "glow": "Filament.010"}, # F#4
+        67: {"piston": "Piston.011", "glow": "Filament.011"}, # G4
 
-        68: {"piston": "Piston.006", "glow": "Filament.006"}, # G#4
-        69: {"piston": "Piston.004", "glow": "Filament.004"}, # A4
-        70: {"piston": "Piston.002", "glow": "Filament.002"}, # A#4
-        71: {"piston": "Piston.001", "glow": "Filament.001"}, # B4
-        72: {"piston": "Piston.003", "glow": "Filament.003"}, # C5
-        73: {"piston": "Piston.005", "glow": "Filament.005"}, # C#5
-        74: {"piston": "Piston.007", "glow": "Filament.007"}, # D5
+        68: {"piston": "Piston.012", "glow": "Filament.012"}, # G#4
+        69: {"piston": "Piston.013", "glow": "Filament.013"}, # A4
+        70: {"piston": "Piston.014", "glow": "Filament.014"}, # A#4
+        71: {"piston": "Piston.015", "glow": "Filament.015"}, # B4
+        72: {"piston": "Piston.016", "glow": "Filament.016"}, # C5
+        73: {"piston": "Piston.017", "glow": "Filament.017"}, # C#5
+        74: {"piston": "Piston.018", "glow": "Filament.018"}, # D5
 
         75: {"piston": "Piston.019", "glow": "Filament.019"}, # D#5
-        76: {"piston": "Piston.021", "glow": "Filament.021"}, # E5
-        77: {"piston": "Piston.023", "glow": "Filament.023"}, # F5
-        78: {"piston": "Piston.025", "glow": "Filament.025"}, # F#5
-        79: {"piston": "Piston.027", "glow": "Filament.027"}, # G5
-        80: {"piston": "Piston.029", "glow": "Filament.029"}, # G#5
+        76: {"piston": "Piston.020", "glow": "Filament.020"}, # E5
+        77: {"piston": "Piston.021", "glow": "Filament.021"}, # F5
+        78: {"piston": "Piston.022", "glow": "Filament.022"}, # F#5
+        79: {"piston": "Piston.023", "glow": "Filament.023"}, # G5
+        80: {"piston": "Piston.024", "glow": "Filament.024"}, # G#5
 
-        81: {"piston": "Piston.015", "glow": "Filament.015"}, # A5
-        82: {"piston": "Piston.011", "glow": "Filament.011"}, # A#5
-        83: {"piston": "Piston.009", "glow": "Filament.009"}, # B5
-        84: {"piston": "Piston.013", "glow": "Filament.013"}, # C6
-        85: {"piston": "Piston.017", "glow": "Filament.017"}, # C#6
+        81: {"piston": "Piston.025", "glow": "Filament.025"}, # A5
+        82: {"piston": "Piston.026", "glow": "Filament.026"}, # A#5
+        83: {"piston": "Piston.027", "glow": "Filament.027"}, # B5
+        84: {"piston": "Piston.028", "glow": "Filament.028"}, # C6
+        85: {"piston": "Piston.029", "glow": "Filament.029"}, # C#6
     }
 
     # bucket notes by pitch once
@@ -382,31 +475,42 @@ def animate_organ(track_list, organ_track_idx):
     for pitch, cfg in organ_mapping.items():
         if pitch not in notes_by_pitch:
             continue
+        
+        # skip if obj not found in blender scene
+        piston_name = cfg["piston"]
+        if piston_name not in bpy.data.objects:
+            print(f"[WARN] Object {piston_name!r} not found in Blender scene, skipping.")
+            continue
+        glow_name = cfg["glow"]
+        if glow_name not in bpy.data.objects:
+            print(f"[WARN] Object {glow_name!r} not found in Blender scene, skipping.")
+            continue
 
-        obj_name = cfg.get("piston")
-        if obj_name and obj_name in bpy.data.objects:
-            animate_piston(bpy.data.objects[obj_name], notes_by_pitch[pitch])
-        elif obj_name:
-            print(f"[WARN] Piston object {obj_name!r} not found.")
+        # piston motion
+        piston_obj = bpy.data.objects[piston_name]
+        animate_piston(
+            obj=piston_obj,
+            notes=notes_by_pitch[pitch],
+            dist=0.23
+        )
 
-    # glow pass (reuse your glow code!)
-    animate_glow_group(
-        notes=organ_notes,
-        mapping=organ_mapping,
-        slot=0,
-        on_strength=100.0,
-        off_strength=0.0,
-        pre_frames=2,
-        copy_material=True
-    )
+        # filament glow
+        glow_obj = bpy.data.objects[glow_name]
+        animate_glow(
+            obj=glow_obj,
+            notes=notes_by_pitch[pitch],
+            slot=0,
+            on_strength=100.0,
+            off_strength=1.0,
+        )
 
 ### BASS ###
-def animate_bass(track_list, bass_track_idx):
+def animate_bass(track_list, track_id):
     """
     bass animation based on note events, BELOW ORGAN
     """
     # Implementation would go here
-    bass_notes = track_list[bass_track_idx]
+    bass_notes = track_list[track_id]
 
     bass_mapping = {
         47: "Core.001", # A2
@@ -449,15 +553,12 @@ def animate_bass(track_list, bass_track_idx):
             print(f"[WARN] Bass object {obj_name!r} not found, skipping.")
             continue
 
-        # one material, slot 0, glow it
         animate_glow(
             obj=obj,
             notes=notes_by_pitch[pitch],
             slot=0,
-            on_strength=100.0,   # tweak
-            off_strength=0.0,
-            pre_frames=2,
-            copy_material=True
+            on_strength=100.0,
+            off_strength=1.0,
         )
 
 ### TRUMPET LASER helper ###
@@ -471,158 +572,130 @@ def map_pitch(p, pmin, pmax, amin, amax):
     return amin + t * (amax - amin)
 
 ### TRUMPET LASER ###
-def animate_trumpet_laser(track_list, trumpet_track_idx, trumpet_name, 
-                          laser_name, x_on_deg=25.0, z_on_deg=-12.0,
-                          pre_frames=1, settle_frames=3):
+def animate_trumpet_laser(track_list, track_id, obj_num):
     """
     - Laser appears on note-on, disappears on note-off (viewport + render)
     - Trumpet + laser rotate on X and Z within bounds, then return to rest after note-off
     """
 
-    notes = sorted(track_list[trumpet_track_idx], key=lambda n: n.start_frame)
+    # define object names
+    trumpet_names = [
+        "Gyro_X" + obj_num,
+        "Gyro_Z" + obj_num,
+        "Beam" + obj_num   
+    ]
 
-    trumpet = bpy.data.objects.get(trumpet_name)
-    laser = bpy.data.objects.get(laser_name)
-    if trumpet is None or laser is None:
-        print(f"[WARN] Missing objects: trumpet={trumpet_name!r} laser={laser_name!r}")
-        return
+    # get objs, skip if obj not found in blender scene
+    trumpet_objects = []
+    for name in trumpet_names :
+        obj = bpy.data.objects.get(name)
+        if obj is None:
+            print(f"[WARN] Missing objects: trumpet={trumpet_name!r} laser={laser_name!r}")
+            return
+        else : trumpet_objects.append(obj)
 
-    trumpet.rotation_mode = 'XYZ'
-    laser.rotation_mode = 'XYZ'
-    rest_tr = trumpet.rotation_euler.copy()
-    rest_lr = laser.rotation_euler.copy()
+    GX = trumpet_objects[0]
+    GZ = trumpet_objects[1]
+    L = trumpet_objects[2]
+
+    notes = sorted(track_list[track_id], key=lambda n: n.start_frame)
 
     # start laser hidden
-    laser.hide_viewport = True
-    laser.hide_render = True
-    laser.keyframe_insert("hide_viewport", frame=1)
-    laser.keyframe_insert("hide_render", frame=1)
+    L.hide_viewport = True
+    L.hide_render = True
+    #L.keyframe_insert("hide_viewport", frame=1)
+    L.keyframe_insert("hide_render", frame=1)
 
     for note in notes:
-        on_f = int(note.start_frame)
-        off_f = int(note.end_frame)
-        hold_f = max(on_f - pre_frames, 1)
-        settle_f = off_f + settle_frames
+        on_frame = int(note.start_frame)
+        hold_frame = on_frame - 1
+        off_frame = int(note.end_frame)
+        settle_frame = off_frame + 1
 
         # --- Laser visibility ---
-        laser.hide_viewport = True
-        laser.hide_render = True
-        laser.keyframe_insert("hide_viewport", frame=max(hold_f - 1, 1))
-        laser.keyframe_insert("hide_render", frame=max(hold_f - 1, 1))
+        L.hide_viewport = True
+        L.hide_render = True
+        #L.keyframe_insert("hide_viewport", frame=hold_frame)
+        L.keyframe_insert("hide_render", frame=hold_frame)
 
-        laser.hide_viewport = False
-        laser.hide_render = False
-        laser.keyframe_insert("hide_viewport", frame=on_f)
-        laser.keyframe_insert("hide_render", frame=on_f)
+        L.hide_viewport = False
+        L.hide_render = False
+        #L.keyframe_insert("hide_viewport", frame=on_frame)
+        L.keyframe_insert("hide_render", frame=on_frame)
+        #L.keyframe_insert("hide_viewport", frame=off_frame)
+        L.keyframe_insert("hide_render", frame=off_frame)
 
-        laser.hide_viewport = True
-        laser.hide_render = True
-        laser.keyframe_insert("hide_viewport", frame=off_f)
-        laser.keyframe_insert("hide_render", frame=off_f)
-
+        L.hide_viewport = True
+        L.hide_render = True
+        #L.keyframe_insert("hide_viewport", frame=settle_frame)
+        L.keyframe_insert("hide_render", frame=settle_frame)
+        """
         # --- Rotation (fixed pose) ---
         pmin, pmax = 38, 57
         x_deg = map_pitch(note.pitch, pmin, pmax, -50.0, 50.0)
         z_deg = map_pitch(note.pitch, pmin, pmax,  30.0, -30.0) 
 
-        on_tr = rest_tr.copy()
-        on_lr = rest_lr.copy()
-        on_tr.x = rest_tr.x + radians(x_deg)
-        on_tr.z = rest_tr.z + radians(z_deg)
-        on_lr.x = rest_lr.x + radians(x_deg)
-        on_lr.z = rest_lr.z + radians(z_deg)
+        rest_GX = GX.rotation_euler.copy()
+        rest_GZ = GZ.rotation_euler.copy()
+        on_GX = rest_GX.copy()
+        on_GZ = rest_GZ.copy()
+        on_GX.x = rest_GX.x + radians(x_deg)
+        on_GZ.z = rest_GZ.z + radians(z_deg)
 
-        trumpet.rotation_euler = rest_tr
-        trumpet.keyframe_insert("rotation_euler", frame=max(hold_f - 1, 1))
-        laser.rotation_euler = rest_lr
-        laser.keyframe_insert("rotation_euler", frame=max(hold_f - 1, 1))
+        GX.rotation_euler = rest_GX
+        GX.keyframe_insert("rotation_euler", frame=hold_frame)
+        GZ.rotation_euler = rest_GZ
+        GZ.keyframe_insert("rotation_euler", frame=hold_frame)
 
-        trumpet.rotation_euler = on_tr
-        trumpet.keyframe_insert("rotation_euler", frame=on_f)
-        laser.rotation_euler = on_lr
-        laser.keyframe_insert("rotation_euler", frame=on_f)
+        GX.rotation_euler = on_GX
+        GX.keyframe_insert("rotation_euler", frame=on_frame)
+        GX.keyframe_insert("rotation_euler", frame=off_frame)
+        GZ.rotation_euler = on_GZ
+        GZ.keyframe_insert("rotation_euler", frame=on_frame)
+        GX.keyframe_insert("rotation_euler", frame=off_frame)
 
-        trumpet.rotation_euler = rest_tr
-        trumpet.keyframe_insert("rotation_euler", frame=settle_f)
-        laser.rotation_euler = rest_lr
-        laser.keyframe_insert("rotation_euler", frame=settle_f)
-
+        GX.rotation_euler = rest_GX
+        GX.keyframe_insert("rotation_euler", frame=settle_frame)
+        GZ.rotation_euler = rest_GZ
+        GZ.keyframe_insert("rotation_euler", frame=settle_frame)
+        """
     bpy.context.view_layer.update()
 
 ### GLOW ANIMATION ###
-def animate_glow(obj, notes, slot, on_strength=10.0, off_strength=0.0, pre_frames=4, copy_material=True):
-    """
-    Keyframe Principled BSDF Emission Strength for one object:
-    - off until right before note-on
-    - on at note-on
-    - off at note-off
-    """
+def animate_glow(obj, notes, slot, on_strength, off_strength):
     # get material from specified material slot
     if not obj.material_slots or obj.material_slots[slot].material is None:
         print(f"[WARN] {obj.name!r} has no material in slot {slot}, skipping.")
         return
-    
-    mat = obj.material_slots[slot].material
-    # make a copy of the material to avoid affecting other objects
-    if copy_material and mat.users > 1:
-        mat = mat.copy()
-        obj.material_slots[slot].material = mat
 
     # find Principled BSDF node
-    nodes = mat.node_tree.nodes
-    bsdf = next((n for n in nodes if n.type == 'BSDF_PRINCIPLED'), None)
+    node_tree = obj.material_slots[slot].material.node_tree
+    bsdf = next((n for n in node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
     if bsdf is None:
         print(f"[WARN] {mat.name!r}: no Principled BSDF node found, skipping.")
         return
 
-    # Emission socket name depends on Blender version/material setup
+    # emission socket name depends on blender version/material setup
     if "Emission Strength" in bsdf.inputs:
-        sock = bsdf.inputs["Emission Strength"]
+        socket = bsdf.inputs["Emission Strength"]
 
     notes = sorted(notes, key=lambda n: n.start_frame)
 
     for note in notes:
         on_frame = note.start_frame
+        hold_frame = on_frame - 6
         off_frame = note.end_frame
-        hold_f = max(on_frame - pre_frames, 1)
+        settle_frame = note.end_frame + 6
 
-        # Keyframe off at hold frame
-        sock.default_value = off_strength
-        sock.keyframe_insert(data_path="default_value", frame=max(hold_f - 1, 1))
+        # keyframe off at hold frame
+        socket.default_value = off_strength
+        socket.keyframe_insert("default_value", frame=hold_frame)
 
-        # turn on at note on
-        sock.default_value = on_strength
-        sock.keyframe_insert(data_path="default_value", frame=on_frame+4)
+        # turn on and stay on
+        socket.default_value = on_strength
+        socket.keyframe_insert("default_value", frame=on_frame)
+        socket.keyframe_insert("default_value", frame=off_frame)
 
-        # turn off at note off
-        sock.default_value = off_strength
-        sock.keyframe_insert(data_path="default_value", frame=off_frame)
-
-
-def animate_glow_group(notes, mapping, slot, on_strength=10.0, off_strength=0.0, pre_frames=4, copy_material=True):
-    notes_by_pitch = {}
-    for note in notes:
-        notes_by_pitch.setdefault(note.pitch, []).append(note)
-
-    for pitch, cfg in mapping.items():
-        if pitch not in notes_by_pitch:
-            continue
-
-        # get object name from mapping
-        obj_name = cfg.get("glow")
-
-        obj = bpy.data.objects.get(obj_name)
-        if obj is None:
-            print(f"[WARN] Object {obj_name!r} not found, skipping.")
-            continue
-
-        # animate glow for this object for this note
-        animate_glow(
-            obj=obj,
-            notes=notes_by_pitch[pitch],
-            slot=slot,
-            on_strength=on_strength,
-            off_strength=off_strength,
-            pre_frames=pre_frames,
-            copy_material=copy_material
-        )
+        # turn off at settle frame
+        socket.default_value = off_strength
+        socket.keyframe_insert("default_value", frame=settle_frame)
