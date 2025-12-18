@@ -338,22 +338,22 @@ def animate_drums(track_list, track_id):
     # map drum pitches to drum objects in Blender
     drum_mapping = {
         36: {"hammer": "Kick_Stick", "swing_deg": 14.0, "rebound_deg": 10.0,
-                "drum": "Kick", "hit_dist": 0.01, "rebound_dist": 0.01},
+                "drum": "Kick", "hit_dist": 0.01, "rebound_dist": 0.005},
 
         40: {"hammer": "Snare_Stick", "swing_deg": -12.0, "rebound_deg": -10.0,
-                "drum": "Snare", "hit_dist": 0.01, "rebound_dist": 0.01},
+                "drum": "Snare", "hit_dist": 0.01, "rebound_dist": 0.005},
 
         42: {"hammer": "HiHat_Stick", "swing_deg": -15.0, "rebound_deg": -11.0,
-                "drum": "HiHat", "hit_dist": 0.01, "rebound_dist": 0.01},
+                "drum": "HiHat", "hit_dist": 0.01, "rebound_dist": 0.005},
 
         43: {"hammer": "TomLo_Stick", "swing_deg": 18.0, "rebound_deg": 14.0,
-                "drum": "TomLo", "hit_dist": 0.01, "rebound_dist": 0.01},
+                "drum": "TomLo", "hit_dist": 0.01, "rebound_dist": 0.005},
 
         45: {"hammer": "TomHi_Stick", "swing_deg": 18.0, "rebound_deg": 10.0,
-                "drum": "TomHi", "hit_dist": 0.01, "rebound_dist": 0.01},
+                "drum": "TomHi", "hit_dist": 0.01, "rebound_dist": 0.005},
 
         49: {"hammer": "Crash_Stick", "swing_deg": -17.0, "rebound_deg": -14.0,
-                "drum": "Crash", "hit_dist": 0.01, "rebound_dist": 0.01}
+                "drum": "Crash", "hit_dist": 0.01, "rebound_dist": 0.005}
     }
 
     notes_by_pitch = {}
@@ -603,62 +603,68 @@ def animate_trumpet_laser(track_list, track_id, obj_num):
     # start laser hidden
     L.hide_viewport = True
     L.hide_render = True
-    #L.keyframe_insert("hide_viewport", frame=1)
+    L.keyframe_insert("hide_viewport", frame=1)
     L.keyframe_insert("hide_render", frame=1)
 
     for note in notes:
-        on_frame = int(note.start_frame)
-        hold_frame = on_frame - 1
-        off_frame = int(note.end_frame)
-        settle_frame = off_frame + 1
+        on_frame = note.start_frame + 2
+        hold_frame = note.start_frame 
+        off_frame = note.end_frame - 2
+        settle_frame = note.end_frame
 
         # --- Laser visibility ---
         L.hide_viewport = True
         L.hide_render = True
-        #L.keyframe_insert("hide_viewport", frame=hold_frame)
+        L.keyframe_insert("hide_viewport", frame=hold_frame)
         L.keyframe_insert("hide_render", frame=hold_frame)
 
         L.hide_viewport = False
         L.hide_render = False
-        #L.keyframe_insert("hide_viewport", frame=on_frame)
+        L.keyframe_insert("hide_viewport", frame=on_frame)
         L.keyframe_insert("hide_render", frame=on_frame)
-        #L.keyframe_insert("hide_viewport", frame=off_frame)
+        L.keyframe_insert("hide_viewport", frame=off_frame)
         L.keyframe_insert("hide_render", frame=off_frame)
 
         L.hide_viewport = True
         L.hide_render = True
-        #L.keyframe_insert("hide_viewport", frame=settle_frame)
+        L.keyframe_insert("hide_viewport", frame=settle_frame)
         L.keyframe_insert("hide_render", frame=settle_frame)
-        """
+        
         # --- Rotation (fixed pose) ---
         pmin, pmax = 38, 57
-        x_deg = map_pitch(note.pitch, pmin, pmax, -50.0, 50.0)
-        z_deg = map_pitch(note.pitch, pmin, pmax,  30.0, -30.0) 
+        x_deg = map_pitch(note.pitch, pmin, pmax, -30.0, 30.0)
+        z_deg = map_pitch(note.pitch, pmin, pmax, -30.0, 30.0) 
 
+        # reference
         rest_GX = GX.rotation_euler.copy()
         rest_GZ = GZ.rotation_euler.copy()
+        # GX
         on_GX = rest_GX.copy()
-        on_GZ = rest_GZ.copy()
         on_GX.x = rest_GX.x + radians(x_deg)
+        # GZ
+        on_GZ = rest_GZ.copy()
         on_GZ.z = rest_GZ.z + radians(z_deg)
 
+        # hold until just before rotation
         GX.rotation_euler = rest_GX
         GX.keyframe_insert("rotation_euler", frame=hold_frame)
         GZ.rotation_euler = rest_GZ
         GZ.keyframe_insert("rotation_euler", frame=hold_frame)
 
+        # rotate and stay rotated
         GX.rotation_euler = on_GX
-        GX.keyframe_insert("rotation_euler", frame=on_frame)
+        GX.keyframe_insert("rotation_euler", frame=on_frame + 2)
         GX.keyframe_insert("rotation_euler", frame=off_frame)
         GZ.rotation_euler = on_GZ
-        GZ.keyframe_insert("rotation_euler", frame=on_frame)
+        GZ.keyframe_insert("rotation_euler", frame=on_frame + 2)
         GX.keyframe_insert("rotation_euler", frame=off_frame)
 
+        # return to rest rotation
         GX.rotation_euler = rest_GX
         GX.keyframe_insert("rotation_euler", frame=settle_frame)
         GZ.rotation_euler = rest_GZ
         GZ.keyframe_insert("rotation_euler", frame=settle_frame)
-        """
+        
     bpy.context.view_layer.update()
 
 ### GLOW ANIMATION ###
