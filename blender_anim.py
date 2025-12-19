@@ -34,11 +34,11 @@ def animate_hammer_harp(obj, notes, swing_deg, rebound_deg, axis):
             up_rot.x += radians(rebound_deg)
             down_rot.x += radians(-swing_deg)
             rebound_rot.x += radians(rebound_deg+5)
-        elif axis == 'Y' :
+        elif axis == 'Y':
             up_rot.y += radians(rebound_deg)
             down_rot.y += radians(-swing_deg)
             rebound_rot.y += radians(rebound_deg+5)
-        elif axis == 'Z' :
+        elif axis == 'Z':
             up_rot.z += radians(rebound_deg)
             down_rot.z += radians(-swing_deg)
             rebound_rot.z = radians(rebound_deg+5)
@@ -246,7 +246,7 @@ def animate_drum_hammer(obj, notes, swing_deg, rebound_deg, axis):
             up_rot.y += radians(rebound_deg)
             down_rot.y += radians(-swing_deg)
             rebound_rot.y += radians(rebound_deg)
-        elif axis == "Z" :
+        elif axis == "Z":
             up_rot.z += radians(rebound_deg)
             down_rot.z += radians(-swing_deg)
             rebound_rot.z += radians(rebound_deg)
@@ -587,12 +587,12 @@ def animate_trumpet_laser(track_list, track_id, obj_num):
 
     # get objs, skip if obj not found in blender scene
     trumpet_objects = []
-    for name in trumpet_names :
+    for name in trumpet_names:
         obj = bpy.data.objects.get(name)
         if obj is None:
             print(f"[WARN] Missing objects: trumpet={trumpet_name!r} laser={laser_name!r}")
             return
-        else : trumpet_objects.append(obj)
+        else: trumpet_objects.append(obj)
 
     GX = trumpet_objects[0]
     GZ = trumpet_objects[1]
@@ -606,38 +606,50 @@ def animate_trumpet_laser(track_list, track_id, obj_num):
     L.keyframe_insert("hide_viewport", frame=1)
     L.keyframe_insert("hide_render", frame=1)
 
-    for note in notes:
-        on_frame = note.start_frame + 2
-        hold_frame = note.start_frame 
-        off_frame = note.end_frame - 2
-        settle_frame = note.end_frame
+    # reference rotations
+    rest_GX = GX.rotation_euler.copy()
+    rest_GZ = GZ.rotation_euler.copy()
+
+    for i in range(len(notes)):
+        # relevant frames of note before and after
+        prev_end_frame = None
+        next_start_frame = None
+        if (i-1 >= 0):
+            prev_end_frame = notes[i-1].end_frame
+        if (i+1 < len(notes)):
+            next_start_frame = notes[i+1].start_frame
+
+        # relevant frames of this note
+        on_frame = notes[i].start_frame
+        hold_frame = on_frame - 3
+        off_frame = notes[i].end_frame
+        settle_frame = off_frame + 3
+        threshhold = 7 # min number of frames between notes for rotation
+
 
         # --- Laser visibility ---
         L.hide_viewport = True
         L.hide_render = True
-        L.keyframe_insert("hide_viewport", frame=hold_frame)
-        L.keyframe_insert("hide_render", frame=hold_frame)
+        L.keyframe_insert("hide_viewport", frame=on_frame)
+        L.keyframe_insert("hide_render", frame=on_frame)
 
         L.hide_viewport = False
         L.hide_render = False
-        L.keyframe_insert("hide_viewport", frame=on_frame)
-        L.keyframe_insert("hide_render", frame=on_frame)
-        L.keyframe_insert("hide_viewport", frame=off_frame)
-        L.keyframe_insert("hide_render", frame=off_frame)
+        L.keyframe_insert("hide_viewport", frame=on_frame+1)
+        L.keyframe_insert("hide_render", frame=on_frame+1)
+        L.keyframe_insert("hide_viewport", frame=off_frame-1)
+        L.keyframe_insert("hide_render", frame=off_frame-1)
 
         L.hide_viewport = True
         L.hide_render = True
-        L.keyframe_insert("hide_viewport", frame=settle_frame)
-        L.keyframe_insert("hide_render", frame=settle_frame)
+        L.keyframe_insert("hide_viewport", frame=off_frame)
+        L.keyframe_insert("hide_render", frame=off_frame)
         
         # --- Rotation (fixed pose) ---
         pmin, pmax = 38, 57
-        x_deg = map_pitch(note.pitch, pmin, pmax, -30.0, 30.0)
-        z_deg = map_pitch(note.pitch, pmin, pmax, -30.0, 30.0) 
+        x_deg = map_pitch(notes[i].pitch, pmin, pmax, -30.0, 30.0)
+        z_deg = map_pitch(notes[i].pitch, pmin, pmax, -50.0, 50.0) 
 
-        # reference
-        rest_GX = GX.rotation_euler.copy()
-        rest_GZ = GZ.rotation_euler.copy()
         # GX
         on_GX = rest_GX.copy()
         on_GX.x = rest_GX.x + radians(x_deg)
@@ -646,24 +658,36 @@ def animate_trumpet_laser(track_list, track_id, obj_num):
         on_GZ.z = rest_GZ.z + radians(z_deg)
 
         # hold until just before rotation
-        GX.rotation_euler = rest_GX
-        GX.keyframe_insert("rotation_euler", frame=hold_frame)
-        GZ.rotation_euler = rest_GZ
-        GZ.keyframe_insert("rotation_euler", frame=hold_frame)
+        if (prev_end_frame is None):
+            GX.rotation_euler = rest_GX
+            GX.keyframe_insert("rotation_euler", frame=hold_frame)
+            GZ.rotation_euler = rest_GZ
+            GZ.keyframe_insert("rotation_euler", frame=hold_frame)
+        elif (on_frame - prev_end_frame > threshhold):
+            GX.rotation_euler = rest_GX
+            GX.keyframe_insert("rotation_euler", frame=hold_frame)
+            GZ.rotation_euler = rest_GZ
+            GZ.keyframe_insert("rotation_euler", frame=hold_frame)
 
         # rotate and stay rotated
         GX.rotation_euler = on_GX
-        GX.keyframe_insert("rotation_euler", frame=on_frame + 2)
+        GX.keyframe_insert("rotation_euler", frame=on_frame)
         GX.keyframe_insert("rotation_euler", frame=off_frame)
         GZ.rotation_euler = on_GZ
-        GZ.keyframe_insert("rotation_euler", frame=on_frame + 2)
+        GZ.keyframe_insert("rotation_euler", frame=on_frame)
         GX.keyframe_insert("rotation_euler", frame=off_frame)
 
         # return to rest rotation
-        GX.rotation_euler = rest_GX
-        GX.keyframe_insert("rotation_euler", frame=settle_frame)
-        GZ.rotation_euler = rest_GZ
-        GZ.keyframe_insert("rotation_euler", frame=settle_frame)
+        if (next_start_frame is None):
+            GX.rotation_euler = rest_GX
+            GX.keyframe_insert("rotation_euler", frame=settle_frame)
+            GZ.rotation_euler = rest_GZ
+            GZ.keyframe_insert("rotation_euler", frame=settle_frame)
+        elif (next_start_frame - off_frame > threshhold):
+            GX.rotation_euler = rest_GX
+            GX.keyframe_insert("rotation_euler", frame=settle_frame)
+            GZ.rotation_euler = rest_GZ
+            GZ.keyframe_insert("rotation_euler", frame=settle_frame)
         
     bpy.context.view_layer.update()
 
